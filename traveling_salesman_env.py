@@ -8,10 +8,14 @@ class TravelingSalesmanEnv(gym.Env):
         Custom environemment that follows gym interface. This environnement is created to solve traveling salesman problem with DRL. It is going to be the base for a more complex scenario.
     """
 
-    def __init__(self, max_steps=500, type_of_use="simple", nb_goals=5):
+    def __init__(self, max_steps=500, type_of_use="simple", nb_goals=5, action_k = 1, step_k = 1):
         gym.Env.__init__(self)
         self.bluerov = Bluerov(type_of_use)
         self.ground = GroundState(nb_goals)
+
+        # variables to check different reward values
+        self.action_k = action_k
+        self.step_k = step_k
 
         self.nb_goals = nb_goals
         self.path_history = []
@@ -113,7 +117,7 @@ class TravelingSalesmanEnv(gym.Env):
         if type(coordinates) != type(None):
             self.path_history.append(coordinates.tolist())
             self.bluerov.move_to(coordinates)
-            # wpnt_choice_reward = (len(self.choice_of_wpnt) - sum(self.choice_of_wpnt))
+            wpnt_choice_reward = (len(self.choice_of_wpnt) - sum(self.choice_of_wpnt))
         else:
             done = True
             wpnt_choice_reward = -(len(self.choice_of_wpnt) - sum(self.choice_of_wpnt))
@@ -124,15 +128,14 @@ class TravelingSalesmanEnv(gym.Env):
             done = True
 
         observations = self.get_observations()
+
+        reward_current_action = self.__compute_reward()
         
-        reward = self.__compute_reward() + wpnt_choice_reward - reward_before_action
+        reward = reward_current_action - reward_before_action + (1 - self.step_k) + self.action_k * wpnt_choice_reward 
 
         if (np.sum(self.goals[:,3]) == self.nb_goals) and self.rov_in_base:
             done = True
             reward += self.step_max * 0.1
-        
-        # elif not self.rov_in_base:
-        #     reward -= np.sum(self.goals[:,3])
 
         self.episode_reward += reward
 
