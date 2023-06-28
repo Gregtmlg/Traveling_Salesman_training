@@ -31,7 +31,7 @@ for ak in action_k:
         model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logs_dir, device="cuda")
         # model.set_parameters(f"{models_dir}/traveling_salesman.zip")
         model.learn(total_timesteps=max_timesteps, reset_num_timesteps=False, tb_log_name=f"PPO_ak_{ak}_sk_{sk}")
-        model.save(f"{models_dir}/traveling_salesman_ak_{ak}_sk_{sk}")
+        model.save(f"{models_dir}/traveling_salesman_ak_{ak.translate(str.maketrans('', '', '.'))}_sk_{sk}")
         env.close()
 
 
