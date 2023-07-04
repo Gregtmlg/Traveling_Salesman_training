@@ -182,9 +182,22 @@ class GroundState:
     def __identify_area(self, current_position, last_position):
         x_last, y_last, z_last = last_position[0], last_position[1], last_position[2]
         x_cur, y_cur = current_position[0], current_position[1]
-        if abs(x_last-x_cur) == 10:
-            current_area = [[min(x_last, x_cur), min(y_last, y_cur), z_last], [max(x_last, x_cur)+10, min(y_last, y_cur), z_last], 
-                             [min(x_last, x_cur), max(y_last, y_cur)+10, z_last], [max(x_last, x_cur)+10, max(y_last, y_cur)+10, z_last]]
+        if y_last-y_cur == 10:
+            if x_cur % 20 == 0:
+                current_area = [[x_cur+10, y_cur, z_last], [x_cur-10, y_cur, z_last], 
+                                [x_cur+10, y_cur+20, z_last], [x_cur-10, y_cur+20, z_last]]
+            else:
+                current_area = [[x_last+10, y_last, z_last], [x_last-10, y_last, z_last], 
+                                [x_last+10, y_last+20, z_last], [x_last-10, y_last+20, z_last]]
+                
+        elif y_last-y_cur == -10:
+            if x_cur % 20 == 0:
+                current_area = [[x_cur+10, y_cur, z_last], [x_cur-10, y_cur, z_last], 
+                                [x_cur+10, y_cur-20, z_last], [x_cur-10, y_cur-20, z_last]]
+            else:
+                current_area = [[x_last+10, y_last, z_last], [x_last-10, y_last, z_last], 
+                                [x_last+10, y_last-20, z_last], [x_last-10, y_last-20, z_last]]
+                
         elif x_last==x_cur:
             current_area = [[min(x_last, x_cur)-10, min(y_last, y_cur), z_last], [max(x_last, x_cur)+10, min(y_last, y_cur), z_last], [min(x_last, x_cur)-10, max(y_last, y_cur), z_last], 
                              [max(x_last, x_cur)+10, max(y_last, y_cur), z_last]]

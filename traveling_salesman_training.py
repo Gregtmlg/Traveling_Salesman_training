@@ -17,7 +17,7 @@ models_dir = "models/PPO"
 logs_dir = "logs" 
 
 action_k = [0.1, 0.5, 1, 1.5, 2, 2.5, 3]
-step_k = [0, 1, 2, 3, 4, 5]
+step_k = [3, 4, 5]
 
 if not os.path.exists(models_dir):
     os.makedirs(models_dir)
@@ -28,10 +28,10 @@ if not os.path.exists(logs_dir):
 for ak in action_k:
     for sk in step_k:
         env = TravelingSalesmanEnv(max_steps=500, type_of_use="simple", nb_goals=5, action_k=ak, step_k=sk)
-        model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logs_dir, device="cuda")
+        model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=logs_dir, device="auto")
         # model.set_parameters(f"{models_dir}/traveling_salesman.zip")
         model.learn(total_timesteps=max_timesteps, reset_num_timesteps=False, tb_log_name=f"PPO_ak_{ak}_sk_{sk}")
-        model.save(f"{models_dir}/traveling_salesman_ak_{ak.translate(str.maketrans('', '', '.'))}_sk_{sk}")
+        model.save(f"{models_dir}/traveling_salesman_ak_{str(ak).translate(str.maketrans('', '', '.'))}_sk_{sk}")
         env.close()
 
 
