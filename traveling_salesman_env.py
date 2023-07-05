@@ -112,6 +112,7 @@ class TravelingSalesmanEnv(gym.Env):
         done = False
         reward_before_action = self.__compute_reward()
         wpnt_choice_reward = 0
+        reward = 0
         current_position = self.bluerov.get_current_position()
         coordinates = self.ground.action_to_waypoint(action, current_position, self.raw_or_col)
         if type(coordinates) != type(None):
