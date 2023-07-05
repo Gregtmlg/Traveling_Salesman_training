@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import math
 
 class GroundState:
     def __init__(self, nb_goals=5) -> None:
@@ -90,6 +91,7 @@ class GroundState:
                                [80,-70,6], [60,-70,6], [40,-70,6], [20,-70,6], [0,-70,6], [-20,-70,6], [-40,-70,6], [-60,-70,6]])
         self.goals = np.zeros((nb_goals,4))
         self.nb_goals = nb_goals
+        self.init_pose = self.reset_init_position()
         self.current_area = []
         self.__x_min = -70
         self.__x_max = 90
@@ -155,8 +157,8 @@ class GroundState:
     
     def reset_init_position(self):
         n = random.randint(0, len(self.init_array)-1)
-        init_pose = self.init_array[n]
-        return init_pose
+        self.init_pose = self.init_array[n]
+        return self.init_pose
         
     def update_goal_reached(self, current_position, last_position):
         current_area = self.__identify_area(current_position, last_position)
@@ -169,6 +171,10 @@ class GroundState:
     
     def get_parameters(self):
         return self.__x_min, self.__x_max, self.__y_min, self.__y_max, self.__depth_min, self.__depth_max
+    
+    def get_distance_to_base(self, current_rov_position):
+        distance_to_base = self.__calculate_distance_to_base(current_rov_position)
+        return distance_to_base
 
     def __check_goal_reached(self, current_area):
         current_area = np.array(current_area)
@@ -226,6 +232,12 @@ class GroundState:
             next_waypnts_possible = np.array([[x+20, y, z], [x+10, y+10, z], [x+10, y-10, z],
                                     [x-20, y, z], [x-10, y+10, z], [x-10, y-10, z]])
         return next_waypnts_possible
+    
+    def __calculate_distance_to_base(self, current_position):
+        dx = current_position[0] - self.init_pose[0]
+        dy = current_position[1] - self.init_pose[1]
+        distance_to_base = math.hypot(dx, dy)
+        return distance_to_base
 
 
 ground = GroundState(5)
@@ -234,7 +246,9 @@ ground.goals = np.array([[60, -67, 6, 0],
                          [-43, -12, 6, 0],
                          [-57, 12, 6, 0],
                          [2, 27, 6, 0]])
-ground.reset_goals()
 current_area = ground.update_goal_reached(np.array([60, -70, 6]), np.array([60, -50, 6]))
-liste, boole = ground.get_choice_of_action(np.array([40,-70,6]))
+liste, row_or_col = ground.get_choice_of_action(np.array([40,-50,6]))
+# row_or_col = ground.wpnt_is_raw_or_col(np.array([40,-70,6]))
+new_wpnt = ground.action_to_waypoint(3, np.array([40, -50, 6]), row_or_col)
+print(new_wpnt)
 print(liste)

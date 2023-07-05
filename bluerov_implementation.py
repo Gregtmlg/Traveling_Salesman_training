@@ -14,6 +14,12 @@ class BluerovImplementation:
     def get_distance_made(self):
         pass
 
+    def get_battery(self):
+        pass
+
+    def reset_battery(self):
+        pass
+
     def __calculate_distances_made(self):
         pass
 
@@ -30,6 +36,8 @@ class SimpleBluerovImplementation(BluerovImplementation):
         self.current_position = np.zeros(3)
         self.init_position = np.zeros(3)
         self.distance_made = 0
+        self.battery = self.reset_battery()
+        self.battery_efficiency = 0.1
 
     def move_to(self, waypoint, wpnt_is_init=False):
         if wpnt_is_init:
@@ -37,6 +45,7 @@ class SimpleBluerovImplementation(BluerovImplementation):
             self.distance_made = 0
         else:
             self.__calculate_distance_made(waypoint)
+            self.__calculate_battery(waypoint)
         self.current_position = waypoint
 
     def get_current_position(self):
@@ -44,11 +53,26 @@ class SimpleBluerovImplementation(BluerovImplementation):
 
     def get_distance_made(self):
         return self.distance_made
+    
+    def get_battery(self):
+        return self.battery
+    
+    def reset_battery(self):
+        self.battery = 100
+        return self.battery
+    
+    def __calculate_battery(self, waypoint):
+        step_distance = self.__calculate_step_distance(waypoint)
+        self.battery -= self.battery_efficiency * step_distance
 
     def __calculate_distance_made(self, waypoint):
+        step_distance = self.__calculate_step_distance(waypoint)
+        self.distance_made += step_distance
+
+    def __calculate_step_distance(self, waypoint):
         dx = self.current_position[0] - waypoint[0]
         dy = self.current_position[1] - waypoint[1]
-        self.distance_made += math.hypot(dx,dy)
+        return math.hypot(dx,dy)
 
 
 # class ArduSubBluerovImplementation(BluerovImplementation):

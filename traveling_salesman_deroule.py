@@ -11,3 +11,17 @@ from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckA
 
 from traveling_salesman_env import TravelingSalesmanEnv
 
+env = TravelingSalesmanEnv(max_steps=500, type_of_use="simple", nb_goals=5, action_k=0.5, step_k=2)
+
+env.reset()
+done = False
+for episode in range(10):
+    while not done:
+        obs, reward, done, info = env.step(env.action_space.sample())
+        print(env.bluerov.get_battery())
+        print("reward = ", reward)
+    env.reset()
+    done = False
+    print("##################### RESET #####################")
+
+env.close()

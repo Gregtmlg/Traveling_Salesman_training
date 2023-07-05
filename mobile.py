@@ -19,4 +19,10 @@ class Bluerov:
         return self.implementation.get_current_position()
     
     def get_distance_made(self):
-        self.implementation.get_distance_made()
+        return self.implementation.get_distance_made()
+
+    def get_battery(self):
+        return self.implementation.get_battery()
+    
+    def reset_battery(self):
+        return self.implementation.reset_battery()
