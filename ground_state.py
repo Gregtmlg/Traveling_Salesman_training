@@ -194,7 +194,7 @@ class GroundState:
                                 [x_cur+10, y_cur+20, z_last], [x_cur-10, y_cur+20, z_last]]
             else:
                 current_area = [[x_last+10, y_last, z_last], [x_last-10, y_last, z_last], 
-                                [x_last+10, y_last+20, z_last], [x_last-10, y_last+20, z_last]]
+                                [x_last+10, y_last-20, z_last], [x_last-10, y_last-20, z_last]]
                 
         elif y_last-y_cur == -10:
             if x_cur % 20 == 0:
@@ -202,12 +202,12 @@ class GroundState:
                                 [x_cur+10, y_cur-20, z_last], [x_cur-10, y_cur-20, z_last]]
             else:
                 current_area = [[x_last+10, y_last, z_last], [x_last-10, y_last, z_last], 
-                                [x_last+10, y_last-20, z_last], [x_last-10, y_last-20, z_last]]
+                                [x_last+10, y_last+20, z_last], [x_last-10, y_last+20, z_last]]
                 
         elif x_last==x_cur:
             current_area = [[min(x_last, x_cur)-10, min(y_last, y_cur), z_last], [max(x_last, x_cur)+10, min(y_last, y_cur), z_last], [min(x_last, x_cur)-10, max(y_last, y_cur), z_last], 
                              [max(x_last, x_cur)+10, max(y_last, y_cur), z_last]]
-        elif y_last==y_last:
+        elif y_last==y_cur:
             current_area = [[min(x_last, x_cur), min(y_last, y_cur)-10, z_last], [max(x_last, x_cur), min(y_last, y_cur)-10, z_last], 
                              [min(x_last, x_cur), max(y_last, y_cur)+10, z_last], [max(x_last, x_cur), max(y_last, y_cur)+10, z_last]]
 
