@@ -92,7 +92,7 @@ class GroundState:
         self.goals = np.zeros((nb_goals,4))
         self.nb_goals = nb_goals
         self.init_pose = self.reset_init_position()
-        self.current_area = []
+        self.last_area = [[-70, -70, 6], [-50, -70, 6], [-70, -50, 6], [-50, -50, 6]]
         self.__x_min = -70
         self.__x_max = 90
         self.__y_min = -70
@@ -186,6 +186,7 @@ class GroundState:
         return -1
 
     def __identify_area(self, current_position, last_position):
+        current_area = self.last_area
         x_last, y_last, z_last = last_position[0], last_position[1], last_position[2]
         x_cur, y_cur = current_position[0], current_position[1]
         if y_last-y_cur == 10:
@@ -211,6 +212,7 @@ class GroundState:
             current_area = [[min(x_last, x_cur), min(y_last, y_cur)-10, z_last], [max(x_last, x_cur), min(y_last, y_cur)-10, z_last], 
                              [min(x_last, x_cur), max(y_last, y_cur)+10, z_last], [max(x_last, x_cur), max(y_last, y_cur)+10, z_last]]
 
+        self.last_area = current_area
         return current_area
     
     def __define_new_goals(self):

@@ -148,7 +148,7 @@ class TravelingSalesmanEnv(gym.Env):
     
     def get_observations(self):
         self.current_position = self.bluerov.get_current_position()
-        if len(self.path_history) > 2:
+        if len(self.path_history) >= 2:
             self.goals = self.ground.update_goal_reached(self.path_history[-1], self.path_history[-2])
         self.rov_in_base = int(
             (self.current_position[0] == self.init_rov_position[0]) and (self.current_position[1] == self.init_rov_position[1])
