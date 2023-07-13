@@ -89,6 +89,7 @@ class GroundState:
                                [-60,90,6], [-40,90,6], [-20,90,6], [0,90,6], [20,90,6], [40,90,6], [60,90,6], [80,90,6],
                                [90,80,6], [90,60,6], [90,40,6], [90,20,6], [90,0,6], [90,-20,6], [90,-40,6], [90,-60,6],
                                [80,-70,6], [60,-70,6], [40,-70,6], [20,-70,6], [0,-70,6], [-20,-70,6], [-40,-70,6], [-60,-70,6]])
+        self.goals_areas = np.zeros((nb_goals,13))
         self.goals = np.zeros((nb_goals,4))
         self.nb_goals = nb_goals
         self.init_pose = self.reset_init_position()
@@ -153,7 +154,9 @@ class GroundState:
     def reset_goals(self):
         self.goals[:,0:3] = self.__define_new_goals()
         self.goals[:,3] = 0
-        return self.goals
+        self.goals_areas = self.wpnt_around_goals()
+        self.goals_areas[:,12] = 0
+        return self.goals_areas
     
     def reset_init_position(self):
         n = random.randint(0, len(self.init_array)-1)
@@ -161,13 +164,25 @@ class GroundState:
         return self.init_pose
         
     def update_goal_reached(self, current_position, last_position):
-        current_area = self.__identify_area(current_position, last_position)
-        goal_idx = self.__check_goal_reached(current_area)
+        # current_area = self.__identify_area(current_position, last_position)
+        goal_idx = -1
+        idx = goal_idx
+        for wpnts in self.goals_areas[:,0:12]:
+            similarities = 0
+            idx += 1
+            for i in range(0,10,3):
+                if (wpnts[i:i+3].tolist() == current_position) or (wpnts[i:i+3].tolist() == last_position):
+                    similarities += 1
+            if similarities == 2:
+                goal_idx = idx
+                
+        
+
         if goal_idx == -1:
-            return self.goals
+            return self.goals_areas
         else:
-            self.goals[goal_idx,3] = 1
-            return self.goals
+            self.goals_areas[goal_idx,12] = 1
+            return self.goals_areas
     
     def get_parameters(self):
         return self.__x_min, self.__x_max, self.__y_min, self.__y_max, self.__depth_min, self.__depth_max
@@ -176,14 +191,14 @@ class GroundState:
         distance_to_base = self.__calculate_distance_to_base(current_rov_position)
         return distance_to_base
 
-    def __check_goal_reached(self, current_area):
-        current_area = np.array(current_area)
-        x_min, x_max = min(current_area[:,0]), max(current_area[:,0])
-        y_min, y_max = min(current_area[:,1]), max(current_area[:,1])
-        for i in range(len(self.goals)):
-            if x_min <= self.goals[i,0] <= x_max and y_min <= self.goals[i,1] <= y_max :
-                return i
-        return -1
+    # def __check_goal_reached(self, current_area):
+    #     current_area = np.array(current_area)
+    #     x_min, x_max = min(current_area[:,0]), max(current_area[:,0])
+    #     y_min, y_max = min(current_area[:,1]), max(current_area[:,1])
+    #     for i in range(len(self.goals)):
+    #         if x_min <= self.goals[i,0] <= x_max and y_min <= self.goals[i,1] <= y_max :
+    #             return i
+    #     return -1
 
     def __identify_area(self, current_position, last_position):
         current_area = self.last_area
@@ -217,12 +232,12 @@ class GroundState:
     
     def __define_new_goals(self):
         goal_possible_areas = [self.corners_n_actions[k] for k in range(len(self.corners_n_actions)) if self.corners_n_actions[k][4]=='scan']
-        self.goal_areas = random.sample(goal_possible_areas, self.nb_goals)
+        goal_areas = random.sample(goal_possible_areas, self.nb_goals)
         new_goals = np.zeros((self.nb_goals, 3))
         for i in range(self.nb_goals):
-            x_list = [self.goal_areas[i][k][0] for k in range(len(self.goal_areas[i])-1)]
-            y_list = [self.goal_areas[i][k][1] for k in range(len(self.goal_areas[i])-1)]
-            new_goals[i, 0], new_goals[i, 1], new_goals[i, 2] = random.randint(min(x_list)+2, max(x_list)-2), random.randint(min(y_list)+2, max(y_list)-2), self.goal_areas[i][0][2]
+            x_list = [goal_areas[i][k][0] for k in range(len(goal_areas[i])-1)]
+            y_list = [goal_areas[i][k][1] for k in range(len(goal_areas[i])-1)]
+            new_goals[i, 0], new_goals[i, 1], new_goals[i, 2] = random.randint(min(x_list)+2, max(x_list)-2), random.randint(min(y_list)+2, max(y_list)-2), goal_areas[i][0][2]
         return new_goals
     
     def __possible_next_waypnts(self, current_waypoint):
@@ -242,15 +257,53 @@ class GroundState:
         return distance_to_base
 
 
+    def wpnt_around_goals(self):
+        goals = np.zeros((self.nb_goals,13))
+        idx_goal = 0
+        for goal in self.goals:
+            shortest_dist = 1e6
+            closest_wpnt = None
+            for wpnt in self.grid_waypoints:
+                if math.hypot(abs(goal[0] - wpnt[0]), abs(goal[1] - wpnt[1])) < shortest_dist:
+                    shortest_dist = math.hypot(abs(goal[0] - wpnt[0]), abs(goal[1] - wpnt[1]))
+                    closest_wpnt = wpnt
+
+            if closest_wpnt[0] % 20 == 0:
+                if goal[1] >= closest_wpnt[1]:
+                    goals[idx_goal,:] = np.array([closest_wpnt[0], closest_wpnt[1], 6, closest_wpnt[0], closest_wpnt[1]+20, 6,
+                                           closest_wpnt[0]-10, closest_wpnt[1]+10, 6, closest_wpnt[0]+10, closest_wpnt[1]+10, 6, 0])
+                else:    
+                    goals[idx_goal, :] = np.array([closest_wpnt[0], closest_wpnt[1], 6, closest_wpnt[0], closest_wpnt[1]-20, 6,
+                                           closest_wpnt[0]-10, closest_wpnt[1]-10, 6, closest_wpnt[0]+10, closest_wpnt[1]-10, 6, 0])
+            
+            else:
+                if goal[0] >= closest_wpnt[0]:
+                    goals[idx_goal,:] = np.array([closest_wpnt[0], closest_wpnt[1], 6, closest_wpnt[0]+20, closest_wpnt[1], 6,
+                                           closest_wpnt[0]+10, closest_wpnt[1]-10, 6, closest_wpnt[0]+10, closest_wpnt[1]+10, 6, 0])
+                    
+                else:
+                    goals[idx_goal,:] = np.array([closest_wpnt[0], closest_wpnt[1], 6, closest_wpnt[0]-20, closest_wpnt[1], 6,
+                                           closest_wpnt[0]-10, closest_wpnt[1]-10, 6, closest_wpnt[0]-10, closest_wpnt[1]+10, 6, 0])
+
+            idx_goal += 1
+
+        return goals
+
+
 ground = GroundState(5)
-ground.goals = np.array([[60, -67, 6, 0],
-                         [-54, -58, 6, 0.],
-                         [-43, -12, 6, 0],
-                         [-57, 12, 6, 0],
-                         [2, 27, 6, 0]])
-current_area = ground.update_goal_reached(np.array([60, -70, 6]), np.array([60, -50, 6]))
-liste, row_or_col = ground.get_choice_of_action(np.array([40,-50,6]))
-# row_or_col = ground.wpnt_is_raw_or_col(np.array([40,-70,6]))
-new_wpnt = ground.action_to_waypoint(3, np.array([40, -50, 6]), row_or_col)
-print(new_wpnt)
-print(liste)
+# ground.goal_coordinates = np.array([[-64, -22, 6, 0],
+#                          [84, 6, 6, 0.],
+#                          [-24, -57, 6, 0],
+#                          [-52, 23, 6, 0],
+#                          [-2, 19, 6, 0]])
+
+# liste, row_or_col = ground.get_choice_of_action(np.array([40,-50,6]))
+# # row_or_col = ground.wpnt_is_raw_or_col(np.array([40,-70,6]))
+# new_wpnt = ground.action_to_waypoint(3, np.array([40, -50, 6]), row_or_col)
+# ground.reset_goals()
+# print(ground.goals_areas)
+# print(ground.goals_areas[0,0:3].tolist())
+# print(ground.goals_areas[0,3:6].tolist())
+# current_area = ground.update_goal_reached(ground.goals_areas[2,0:3].tolist(), ground.goals_areas[2,3:6].tolist())
+# print(current_area)
+print(len(ground.grid_waypoints))

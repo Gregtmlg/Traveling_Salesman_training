@@ -40,8 +40,8 @@ class TravelingSalesmanEnv(gym.Env):
         rov_z_min = [z_min]
         rov_z_max = [z_max]
 
-        goal_min = [x_min, y_min, z_min, 0] * nb_goals
-        goal_max = [x_max, y_max, z_max, 1] * nb_goals
+        goal_min = ([x_min, y_min, z_min]* 4 + [0]) * nb_goals
+        goal_max = ([x_max, y_max, z_max]* 4 + [1]) * nb_goals
 
         x_init_min = [x_min]
         x_init_max = [x_max]
@@ -64,6 +64,24 @@ class TravelingSalesmanEnv(gym.Env):
         choice_of_wpnt_min = [0] * 8
         choice_of_wpnt_max = [1] * 8
 
+        grid_wpnt_min = [x_min, y_min, z_min] * len(self.ground.grid_waypoints)
+        grid_wpnt_max = [x_max, y_max, z_max] * len(self.ground.grid_waypoints)
+
+        obs_space_len = len(rov_x_min
+                    + rov_y_min
+                    + rov_z_min
+                    + [0]
+                    + goal_min
+                    + x_init_min
+                    + y_init_min
+                    + z_init_min
+                    + rov_in_base_min
+                    + step_to_reach_goals_min
+                    + nb_steps_min
+                    + step_left_min
+                    + choice_of_wpnt_min
+                    + grid_wpnt_min)
+
         self.action_space =  gym.spaces.Discrete(8)
         self.observation_space = gym.spaces.Box(
                 low=np.array(
@@ -80,6 +98,7 @@ class TravelingSalesmanEnv(gym.Env):
                     + nb_steps_min
                     + step_left_min
                     + choice_of_wpnt_min
+                    + grid_wpnt_min
             ), 
             high=np.array(
                     rov_x_max
@@ -95,7 +114,8 @@ class TravelingSalesmanEnv(gym.Env):
                     + nb_steps_max
                     + step_left_max
                     + choice_of_wpnt_max
-            ), shape=(43,),dtype=np.float32)
+                    + grid_wpnt_max
+            ), shape=(obs_space_len,),dtype=np.float32)
 
     def reset(self):
         self.reward_history.append(self.episode_reward)
@@ -165,7 +185,8 @@ class TravelingSalesmanEnv(gym.Env):
         'step_to_reach_goals' : np.array(self.o_time),
         'nb_steps' : np.array([self.step_counter]),
         'step_left' : np.array([self.step_max - self.step_counter]),
-        'choice_of_actions' : np.array(self.choice_of_wpnt)
+        'choice_of_actions' : np.array(self.choice_of_wpnt),
+        'grid_of_wpnts' : np.array(self.ground.grid_waypoints)
         }
 
         observations_flat = np.concatenate([obs.flatten() for obs in observations.values()])
@@ -173,7 +194,7 @@ class TravelingSalesmanEnv(gym.Env):
 
     def __compute_reward(self):
         return (
-            np.sum(self.goals[:,3] * self.step_max / (np.asarray(self.o_time) + 0.0001))
+            np.sum(self.goals[:,12] * self.step_max / (np.asarray(self.o_time) + 0.0001))
             - self.step_counter
         )
 
@@ -190,5 +211,9 @@ class TravelingSalesmanEnv(gym.Env):
 
     def __update_goal_counter(self):
         for ix in range(self.nb_goals):
-            if self.goals[ix,3] == 0:
+            if self.goals[ix,12] == 0:
                 self.o_time[ix] += 1
+
+
+# env = TravelingSalesmanEnv(max_steps=250, type_of_use="simple", nb_goals=5, action_k=0.5, step_k=1)
+# print(env.reset())
