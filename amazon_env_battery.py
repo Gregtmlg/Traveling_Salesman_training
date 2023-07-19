@@ -137,7 +137,7 @@ class TSPEasyBatteryEnv(gym.Env):
         self.agt_x = self.restaurant_x
         self.agt_y = self.restaurant_y
         self.agt_battery = 100
-        self.battery_eff = [1,5,11,15,20][random.randint(0,4)]
+        self.battery_eff = 11 #[1,5,11,15,20][random.randint(0,4)]
         if self.randomized_orders:
             # Enforce uniqueness of orders, to prevent multiple orders being placed on the same points
             # And ensure actual orders in the episode are always == n_orders as expected
