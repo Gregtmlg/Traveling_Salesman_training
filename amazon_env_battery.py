@@ -1,10 +1,11 @@
 import gym
 import numpy as np
+import random
 from gym import spaces
 from TSP_view_2D import TSPView2D
 
 
-class TSPEasyEnv(gym.Env):
+class TSPEasyBatteryEnv(gym.Env):
     def render(self, mode="human", close=False):
 
         if self.tsp_view is None:
@@ -39,8 +40,12 @@ class TSPEasyEnv(gym.Env):
         self.agt_x = None
         self.agt_y = None
 
+        self.agt_battery = None
+        self.battery_eff = None
+
         self.o_delivery = []
         self.o_time = []
+        self.order_distances = []
         self.agt_at_restaurant = None
         self.agt_time = None
 
@@ -57,6 +62,10 @@ class TSPEasyEnv(gym.Env):
         # agent y,
         agt_y_min = [self.map_min_y]
         agt_y_max = [self.map_max_y]
+
+        #agent battery,
+        agt_battery_min = [0]
+        agt_battery_max = [100]
         # n_orders for x positions of orders,
         o_x_min = [self.map_min_x for i in range(n_orders)]
         o_x_max = [self.map_max_x for i in range(n_orders)]
@@ -67,6 +76,10 @@ class TSPEasyEnv(gym.Env):
         # whether delivered or not, 0 not delivered, 1 delivered
         o_delivery_min = [0] * n_orders
         o_delivery_max = [1] * n_orders
+
+        # distance from restaurant to orders in steps
+        order_distances_min = [0] * n_orders
+        order_distances_max = [self.map_max_x*2] * n_orders
 
         # whether agent is at restaurant or not
         agt_at_restaurant_max = 1
@@ -93,6 +106,8 @@ class TSPEasyEnv(gym.Env):
                 + o_time_min
                 + [agt_time_min]
                 + [0]
+                + agt_battery_min
+                + order_distances_min
             ),
             high=np.array(
                 agt_x_max
@@ -106,6 +121,8 @@ class TSPEasyEnv(gym.Env):
                 + o_time_max
                 + [agt_time_max]
                 + [self.max_time]
+                + agt_battery_max
+                + order_distances_max
             ),
             dtype=np.int16,
         )
@@ -119,6 +136,8 @@ class TSPEasyEnv(gym.Env):
         self.restaurant_y = 0
         self.agt_x = self.restaurant_x
         self.agt_y = self.restaurant_y
+        self.agt_battery = 100
+        self.battery_eff = [1,5,11,15,20][random.randint(0,4)]
         if self.randomized_orders:
             # Enforce uniqueness of orders, to prevent multiple orders being placed on the same points
             # And ensure actual orders in the episode are always == n_orders as expected
@@ -134,6 +153,7 @@ class TSPEasyEnv(gym.Env):
         self.o_time = [0] * self.n_orders
         self.agt_at_restaurant = 1
         self.agt_time = 0
+        self.order_distances = [abs(x) + abs(y) for x, y in orders]
 
         return self.__compute_state()
 
@@ -142,16 +162,21 @@ class TSPEasyEnv(gym.Env):
         done = False
         reward_before_action = self.__compute_reward()
         self.__play_action(action)
-        reward = self.__compute_reward() - reward_before_action
+        reward = self.__compute_reward() - reward_before_action # - (100 - self.agt_battery)/100
 
         # If agent completed the route and returned back to start, give additional reward
-        if (np.sum(self.o_delivery) == self.n_orders) and self.agt_at_restaurant:
+        if self.agt_at_restaurant:
             done = True
-            reward += self.max_time * 0.1
+            reward += np.sum(self.o_delivery) * self.max_time - self.__adjust_reward()
+            
 
         # If there is timeout, no additional reward
         if self.agt_time >= self.max_time:
             done = True
+        
+        if self.agt_battery <= 0 and not self.agt_at_restaurant:
+            done = True
+            reward -= self.max_time
 
         info = {}
         return self.__compute_state(), reward, done, info
@@ -188,6 +213,9 @@ class TSPEasyEnv(gym.Env):
             (self.agt_x == self.restaurant_x) and (self.agt_y == self.restaurant_y)
         )
 
+        #calculate new battery level
+        self.agt_battery -= self.battery_eff * 1
+
     def __compute_state(self):
         return (
             [self.agt_x]
@@ -201,6 +229,8 @@ class TSPEasyEnv(gym.Env):
             + self.o_time
             + [self.agt_time]
             + [(self.max_time - self.agt_time)]
+            + [self.agt_battery]
+            + self.order_distances
         )
 
     def __receive_order(self):
@@ -220,18 +250,27 @@ class TSPEasyEnv(gym.Env):
             np.sum(np.asarray(self.o_delivery) * self.max_time / (np.asarray(self.o_time) + 0.0001))
             - self.agt_time
         )
+    
+    def __adjust_reward(self):
+        factor = 0
+        for i in range(len(self.order_distances)):
+            if self.o_delivery[i] == 0:
+                if self.order_distances[i] * self.battery_eff < self.agt_battery:
+                    factor += 1
+        return factor * self.max_time
+                    
 
 
-class TSPMediumEnv(TSPEasyEnv):
+class TSPMediumBatteryEnv(TSPEasyBatteryEnv):
     def __init__(self, n_orders=4, map_quad=(2, 2), max_time=50, randomized_orders=True):
         super().__init__(n_orders, map_quad, max_time, randomized_orders)
 
 
-class TSP33Env(TSPEasyEnv):
+class TSP33BatteryEnv(TSPEasyBatteryEnv):
     def __init__(self, n_orders=5, map_quad=(3, 3), max_time=100, randomized_orders=True):
         super().__init__(n_orders, map_quad, max_time, randomized_orders)
 
 
-class TSPHardEnv(TSPEasyEnv):
+class TSPHardBatteryEnv(TSPEasyBatteryEnv):
     def __init__(self, n_orders=10, map_quad=(10, 10), max_time=500, randomized_orders=True):
         super().__init__(n_orders, map_quad, max_time, randomized_orders)

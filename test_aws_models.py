@@ -9,19 +9,21 @@ from stable_baselines3.td3.policies import MlpPolicy
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
 
-from amazon_env import TSPEasyEnv, TSPMediumEnv, TSPHardEnv
+from amazon_env import TSPEasyEnv, TSPMediumEnv, TSPHardEnv, TSP33Env
+from amazon_env_battery import TSPEasyBatteryEnv
 
-models_dir = "models/PPO_aws_hard"
+models_dir = "models/PPO_easy_battery"
 logs_dir = "logs_aws"
 
-env = TSPHardEnv()
+env = TSPEasyBatteryEnv()
 
-model = PPO.load(f"{models_dir}/traveling_salesman_aws_50000000.zip")
+model = PPO.load(f"{models_dir}/traveling_salesman_aws_5000000_battery.zip")
 
 
 for episode in range(10):
     obs = env.reset()
     done = False
+    print(env.battery_eff)
     while not done:
         env.render()
         action, _ = model.predict(obs)
